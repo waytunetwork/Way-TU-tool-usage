@@ -21,6 +21,7 @@ Way-Tu consists of three main components:
 
 The simulation environment and motion generation pipeline are based on **RAI**.  
 RAI is used for scene construction, robot simulation, and trajectory optimization through KOMO.
+The code was developed and tested with **RAI version 0.1.10**. Since the RAI API may differ across versions, some modifications may be required when using newer releases.
 
 ## Tasks
 
