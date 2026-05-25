@@ -1,0 +1,82 @@
+---
+mode : 'train'
+task : 'minigolf' # ["lifting", "minigolf", "hammering"]
+
+# Training parameters
+dataset-save-path :  'distractor-minigolf-ball' # 'new-heuristic-minigolf-e1'
+dataset-train-path : 'precomputed-distractor-segmentation-dataset-test'
+# 'combined-segmentation-dataset-3' # 'minigolf-dataset-top200' # 'combined-segmentation-dataset'    # 'heuristic-hammering-h1' # 'lifting-samples-large-wo-rotation'
+
+
+# These are for segmentation model
+test-model-path : "segmentation_distractor_no_global" # 'combined-segmentation-small-003' # 'primitive-lifting-small-018' 
+model-path : 'combined-segmentation-small-003' # 'primitive-lifting-small-018' 
+log-file : 'combined-segmentation-small-003.txt' # "primitive_lifting_small_018.txt"
+
+# === The parameters below are for training a unified network with multiple datasets ===
+waytu-model-path : "waytu-minigolf-hammering_001"
+waytu-log-file : "waytu-minigolf-hammering_001.txt"
+waytu-test-model-path : "waytu-minigolf-1800-server-006" # "waytu-minigolf-hammering_001"
+num-test-trials : 1
+learning-rate : 0.001
+pre-segmentation : True
+pre-feature : True
+feature-extractor-path : "small_pointnet_encoder_yaw_v3.pth"
+feature-size : 128
+normalize-new : True
+min-neighbors : 1
+radius-outlier : 0.05
+# === End === 
+
+num-trials : 1000
+num-tools : 3
+tool-type: 'primitive' # [mesh, primitive, realistic, distractor]
+
+env-csv : ...
+
+# Model training parameters
+normalize : False
+data-augmentation : True 
+
+batch-size : 1
+num-epochs : 40
+segmentation-threshold : 30
+num-training-points : 1024
+pc-size : 3072
+
+radius : 0.2
+k-neighbors : 8
+
+# Constant parameters
+object-designs: {
+  spatula : ["spatula-handle", "spatula-head"],
+  hammer  : ["hammer-handle", "hammer-head"],
+  lifting-environment : ["lifting-plate", "back-leg1", "back-joint", "back-leg2","front-leg1", "front-joint", "front-leg2"]
+}
+
+cameras : ["camera1", "camera2", "camera3" ] 
+
+area-middle: {
+  min : [-0.35 , 0.15, 0.060],
+  max : [ 0.35 , 0.45, 0.065]
+
+}
+area-negative : {
+  min: [-0.60 , 0.15, 0.050],
+  max: [ -0.35 , 0.45, 0.060],
+}
+
+area-positive : {
+  min: [0.40 , 0.15, 0.050],
+  max: [ 0.65 , 0.45, 0.060],
+}
+
+
+
+label-list-all : ["lifting-platform", "minigolf-platform", "hammering-platform",
+                  "hammer", "spatula", "L-ruler", "screwdriver", "ball", "book", "thin-stick", "ring"]
+
+
+
+
+test-num-trials : 1 
