@@ -8,7 +8,7 @@ The framework takes point cloud observations of a manipulation scene and predict
 ## Overview
 
 <p align="center">
-  <img src="assets/waytu-framework.png" width="650">
+  <img src="assets/waytu-framework.png" width="450">
 </p>
 
 Way-Tu consists of three main components:
