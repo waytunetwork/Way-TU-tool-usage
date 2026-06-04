@@ -1,14 +1,15 @@
 # Way-Tu: A Framework for Tool Selection and Manipulation Using Waypoint Representations
 
-<p align="center">
-  <img src="assets/waytu-framework.png" width="850">
-</p>
 
 This repository contains the implementation of **Way-Tu**, a learning-based framework for tool selection and tool manipulation using waypoint representations.
 
 The framework takes point cloud observations of a manipulation scene and predicts task-relevant waypoints for candidate tools. These predicted waypoints are then used as structured subgoals for motion generation. Tool candidates are evaluated based on their predicted manipulation performance, allowing the system to select a suitable tool for the given task.
 
 ## Overview
+
+<p align="center">
+  <img src="assets/waytu-framework.png" width="650">
+</p>
 
 Way-Tu consists of three main components:
 
