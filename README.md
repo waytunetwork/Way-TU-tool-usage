@@ -1,4 +1,4 @@
-# Way-Tu: A Framework for Tool Selection and Manipulation Using Waypoint Representations
+# Way-Tu: Geometry-Aware Tool Selection and Manipulation Using Waypoint Representations
 
 
 This repository contains the implementation of **Way-Tu**, a learning-based framework for tool selection and tool manipulation using waypoint representations.
