@@ -30,8 +30,14 @@ class MinigolfEnvironment:
         mutils.add_shape(C=self.C, frame_name="right-area", parent = "main-area", shape=right_area_shape, color = [.1], relative_position=[-0.1, -0.15, 0], mass = 20.0)
         mutils.add_shape(C=self.C, frame_name="end-area", parent = "main-area", shape=end_area_shape, color = [.1], relative_position=[0, -0.25, 0], mass = 30.0)
 
-        mutils.add_shape(C=self.C, frame_name="minigolf-obj", joint= True ,parent = "minigolf-platform", shape=minigolf_obj_shape, color = [0, 0, 1.0], mass= 0.00001) # [0.35,0.98,1.0]
-
+        # Zero shot target experiments
+        if self.cfg.get("zero-shot-target", False):
+            mutils.add_different_target(C = self.C, target_name = "bottle", frame_name="minigolf-obj", parent= "minigolf-platform")
+            # mutils.add_different_target(C = self.C, target_name = "puck", frame_name="minigolf-obj", parent= "minigolf-platform")
+            # mutils.add_different_target(C = self.C, target_name = "cube", frame_name="minigolf-obj", parent= "minigolf-platform")
+        else: 
+            mutils.add_shape(C=self.C, frame_name="minigolf-obj", joint= True ,parent = "minigolf-platform", shape=minigolf_obj_shape, color = [0, 0, 1.0], mass= 0.00001) # [0.35,0.98,1.0]
+            
         return "minigolf-platform"
 
     def get_movement_direction(self):

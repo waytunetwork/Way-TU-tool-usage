@@ -12,15 +12,19 @@ import matplotlib.pyplot as plt
 
 from WayTu_RAI.GenerateTools import GenerateTools
 from WayTu_RAI.PrimitiveTools import GeneratePrimitiveTools
-from WayTu_RAI.DistractorTools import GenerateDistractiveTools
-from WayTu_RAI.RealisticTools import GenerateRealisticTools
-from WayTu_RAI.GrillingEnvironment import GrillingEnvironment
+from WayTu_RAI.AdditionalTools import GenerateAdditionalTools
+# from WayTu_RAI.DistractorTools import GenerateDistractiveTools
+# from WayTu_RAI.RealisticTools import GenerateRealisticTools
+# from WayTu_RAI.GrillingEnvironment import GrillingEnvironment
 from WayTu_RAI.Environments.LiftingEnvironment import LiftingEnvironment
+from WayTu_RAI.Environments.PushingEnvironment import PushingEnvironment
 from WayTu_RAI.CameraRAI import CameraRAI
 from WayTu_RAI.Heuristic import Heuristic
 
 from WayTu_RAI.Environments.MinigolfEnvironment import MinigolfEnvironment
 from WayTu_RAI.Environments.HammeringEnvironment import HammeringEnvironment
+from WayTu_RAI.Environments.ReachingEnvironment import ReachingEnvironment
+from WayTu_RAI.Environments.PouringEnvironment import PouringEnvironment
 
 class GenerateEnvironment: 
     def __init__(self, cfg):
@@ -42,6 +46,8 @@ class GenerateEnvironment:
             self.tools = GenerateRealisticTools(self.cfg, self.C)
         elif self.cfg["tool-type"] == 'distractor': 
             self.tools = GenerateDistractiveTools(self.cfg, self.C)
+        elif self.cfg["tool-type"] == 'additional':
+            self.tools = GenerateAdditionalTools(self.cfg, self.C)
         else: 
             raise Exception("The tool-type was not found or is currently not implemented.")   
         
@@ -54,6 +60,12 @@ class GenerateEnvironment:
             self.env = MinigolfEnvironment(self.cfg, self.C)
         elif self.cfg["task"] == "hammering":
             self.env = HammeringEnvironment(self.cfg, self.C)
+        elif self.cfg["task"] == "reaching":
+            self.env = ReachingEnvironment(self.cfg, self.C)
+        elif self.cfg["task"] == "pouring":
+            self.env = PouringEnvironment(self.cfg, self.C)
+        elif self.cfg["task"] == "pushing":
+            self.env = PushingEnvironment(self.cfg, self.C)
         else:
             raise Exception("The environment was not found or is currently not implemented.")
         
@@ -74,11 +86,13 @@ class GenerateEnvironment:
             random_tools = good_tools + bad_tools
         else: 
             raise Exception("something is wrong with mode")
+
+
         for too in random_tools:
             self.place_tools_realistic(too)
         
-        # self.C.view()
-
+        self.C.view()
+        
 
         # Add environment
         self.env_objs = self.env.getObjects()
@@ -87,8 +101,8 @@ class GenerateEnvironment:
             self.place_environment_simple(eobj)
 
 
-        # self.C.view()
-        
+        self.C.view()
+  
 
         # self.C.view()
         # time.sleep(7.0)
@@ -171,7 +185,12 @@ class GenerateEnvironment:
                 "ball" : [0.08, 0.08, 0.08],
                 "ring" : [0.10, 0.10, 0.05],
                 "thin-stick": [0.02, 0.12, 0.02],
-                "book" : [0.10, 0.15, 0.06]
+                "book" : [0.10, 0.15, 0.06],
+                "pitcher": [0.08, 0.12, 0.13],
+                "U-tool": [0.10, 0.20, 0.04],
+                "fork-spatula": [0.07, 0.15, 0.05],
+                "asymmetric-L-ruler": [0.16, 0.20, 0.04],
+                "pipe-hammer": [0.08, 0.16, 0.05],
             }
         bounding_box_dimension = tool_bounding_boxes[obj_name]
         trial_count = 0
@@ -379,7 +398,7 @@ class GenerateEnvironment:
         # self.selected_tool = selected_tool + '-base'
         
         # Find the label of selected tool
-        tool_idx = self.cfg["label-list-all-v2"].index(selected_tool)
+        tool_idx = self.cfg["label-list-all"].index(selected_tool)
 
         return selected_tool, tool_idx
     
@@ -396,9 +415,11 @@ class GenerateEnvironment:
             raise Exception("To be able to set the waypoints, either pcl_dict or waypoint should be given.")
         if pcl_dict is not None: 
             waypoints = self.heuristic.create_heuristic_waypoints(pcl_dict, selected_tool, other_tools)
+            return waypoints
         if waypoint is not None: 
             self.add_model_waypoints(waypoint)
-        return waypoints
+            print("The waypoints are added.")
+        
     
     def correct_quaternion_to_upward_z(self, predicted_quat):
         """
@@ -524,6 +545,7 @@ class GenerateEnvironment:
             . setShape(ry.ST.marker, [.1])\
             .setPosition(waypoints["pos"][2])\
             .setQuaternion(waypoints["qua"][2])
+        
         
     # This function is not completed - the placement is missing
     def place_objects(self, objs, type):
@@ -759,5 +781,4 @@ class GenerateEnvironment:
 class PlacementError(Exception):
     """Raised when a collision free placement cannot be found for current localization by the limited number of trials."""
     pass
-
 
