@@ -22,7 +22,10 @@ class GeneratePrimitiveTools:
             # self.create_screwdriver,
             # self.create_ball,
             # self.create_rolling_pin,
-
+            # self.create_U_tool,
+            # self.create_fork_spatula,
+            # self.create_asymmetric_L_ruler, 
+            # self.create_pipe_hammer,
             ]
         
         # self.create_screwdriver
@@ -252,3 +255,305 @@ class GeneratePrimitiveTools:
         return mutils.create_primitive_bounding_box(C, obj_part_names)
     
  
+    def create_U_tool(self):
+        bridge_shape = [0.16, 0.035, 0.02, 0.004]
+        arm_shape = [0.035, 0.20, 0.02, 0.004]
+
+        arm_offset_x = (bridge_shape[0] - arm_shape[0]) / 2.0
+        arm_offset_y = (arm_shape[1] - bridge_shape[1]) / 2.0
+
+        color = [0.45, 0.55, 0.75]
+
+        mutils.add_shape(
+            C=self.C,
+            frame_name="U-tool-base",
+            parent="table",
+            shape=bridge_shape,
+            color=color,
+        )
+
+        mutils.add_shape(
+            C=self.C,
+            frame_name="U-tool-head",
+            parent="U-tool-base",
+            shape=arm_shape,
+            relative_position=[-arm_offset_x, arm_offset_y, 0.0],
+            color=color,
+        )
+
+        mutils.add_shape(
+            C=self.C,
+            frame_name="U-tool-head2",
+            parent="U-tool-base",
+            shape=arm_shape,
+            relative_position=[arm_offset_x, arm_offset_y, 0.0],
+            color=color,
+        )
+
+        return "U-tool"
+
+    def create_fork_spatula(self):
+        handle_shape = [0.025, 0.25, 0.025, 0.005]
+        connector_shape = [0.08, 0.02, 0.01, 0.004]
+        tine_shape = [0.011, 0.07, 0.01, 0.003]
+
+        random_handle_shape = self.add_shape_randomness(handle_shape)
+
+        head_position = [0.0, 0.11, 0.0]
+        head_position, head_qua = self.add_head_randomness(head_position)
+
+        mutils.add_shape(
+            C=self.C,
+            frame_name="fork-spatula-base",
+            parent="table",
+            shape=random_handle_shape,
+            joint=True,
+            color=[0.15, 0.15, 0.15],
+            mass=0.1
+        )
+
+        # Connector between the handle and the tines
+        mutils.add_shape(
+            C=self.C,
+            frame_name="fork-spatula-head",
+            parent="fork-spatula-base",
+            shape=connector_shape,
+            relative_position=head_position,
+            relative_quaternion=head_qua,
+            color=[0.8, 0.8, 0.8],
+            mass=0.04
+        )
+
+        tine_offsets = [-0.03, -0.01, 0.01, 0.03]
+
+        for i, x_offset in enumerate(tine_offsets):
+            mutils.add_shape(
+                C=self.C,
+                frame_name=f"fork-spatula-tine-{i}",
+                parent="fork-spatula-head",
+                shape=tine_shape,
+                relative_position=[x_offset, -0.04, 0.0],
+                color=[0.8, 0.8, 0.8],
+                mass=0.015
+            )
+
+        return "fork-spatula"
+
+    def create_asymmetric_L_ruler(self):
+        tool_name = "asymmetric-L-ruler"
+        thickness = 0.02
+
+        long_arm_width = 0.035
+        long_arm_length = 0.25
+
+        connecting_arm_width = 0.035
+        connecting_arm_length = 0.13
+
+        short_arm_width = 0.03
+        short_arm_length = random.uniform(0.04, 0.08)
+
+        color = [0.65, 0.65, 0.70]
+
+        mutils.add_shape(
+            C=self.C,
+            frame_name=f"{tool_name}-base",
+            parent="table",
+            shape=[
+                long_arm_width,
+                long_arm_length,
+                thickness,
+                0.005
+            ],
+            joint=True,
+            color=color,
+            mass=0.10
+        )
+
+        connecting_x = (
+            connecting_arm_length - long_arm_width
+        ) / 2
+
+        connecting_y = (
+            -long_arm_length / 2
+            + connecting_arm_width / 2
+        )
+
+        mutils.add_shape(
+            C=self.C,
+            frame_name=f"{tool_name}-head",
+            parent=f"{tool_name}-base",
+            shape=[
+                connecting_arm_length,
+                connecting_arm_width,
+                thickness,
+                0.005
+            ],
+            relative_position=[
+                connecting_x,
+                connecting_y,
+                0.0
+            ],
+            color=color,
+            mass=0.07
+        )
+
+        overlap = 0.005
+
+        short_arm_x = (
+            connecting_arm_length / 2
+            - short_arm_width / 2
+        )
+
+        short_arm_y = (
+            connecting_arm_width / 2
+            + short_arm_length / 2
+            - overlap
+        )
+
+        mutils.add_shape(
+            C=self.C,
+            frame_name=f"{tool_name}-head2",
+            parent=f"{tool_name}-head",
+            shape=[
+                short_arm_width,
+                short_arm_length,
+                thickness,
+                0.005
+            ],
+            relative_position=[
+                short_arm_x,
+                short_arm_y,
+                0.0
+            ],
+            color=color,
+            mass=0.03
+        )
+
+        return tool_name
+
+    def create_pipe_hammer(self):
+        tool_name = "pipe-hammer"
+
+        # Thinner handle and a longer functional head
+        handle_shape = [0.04, 0.25, 0.025, 0.005]
+        head_shape = [0.11, 0.035, 0.035, 0.006]
+
+        random_handle_shape = self.add_shape_randomness(
+            handle_shape
+        )
+        random_head_shape = self.add_shape_randomness(
+            head_shape,
+            change_factor=0.05
+        )
+
+        head_position = [0.0, 0.12, 0.0]
+        head_position, head_qua = self.add_head_randomness(
+            head_position,
+            change=0.004,
+            qua=10
+        )
+
+        handle_color = [0.55, 0.27, 0.07]
+        head_color = [0.70, 0.70, 0.75]
+        jaw_color = [0.80, 0.15, 0.15]
+
+        mutils.add_shape(
+            C=self.C,
+            frame_name=f"{tool_name}-base",
+            parent="table",
+            shape=random_handle_shape,
+            joint=True,
+            color=handle_color,
+            mass=0.10
+        )
+
+        mutils.add_shape(
+            C=self.C,
+            frame_name=f"{tool_name}-head",
+            parent=f"{tool_name}-base",
+            shape=random_head_shape,
+            relative_position=head_position,
+            relative_quaternion=head_qua,
+            color=head_color,
+            mass=0.06
+        )
+
+        head_length = random_head_shape[0]
+        head_depth = random_head_shape[1]
+        head_thickness = random_head_shape[2]
+
+        lower_jaw_length = random.uniform(0.065, 0.085)
+        lower_jaw_depth = 0.022
+        jaw_gap = random.uniform(0.015, 0.022)
+
+        support_width = 0.018
+        overlap = 0.004
+        support_depth = (
+            jaw_gap
+            + lower_jaw_depth
+            + overlap
+        )
+
+        # Connect the two jaws at the right end
+        support_x = (
+            head_length / 2
+            - support_width / 2
+        )
+
+        support_y = (
+            -head_depth / 2
+            + overlap
+            - support_depth / 2
+        )
+
+        mutils.add_shape(
+            C=self.C,
+            frame_name=f"{tool_name}-head1",
+            parent=f"{tool_name}-head",
+            shape=[
+                support_width,
+                support_depth,
+                head_thickness,
+                0.004
+            ],
+            relative_position=[
+                support_x,
+                support_y,
+                0.0
+            ],
+            color=jaw_color,
+            mass=0.015
+        )
+
+        # Align the right ends of the upper and lower jaws
+        lower_jaw_x = (
+            head_length / 2
+            - lower_jaw_length / 2
+        )
+
+        lower_jaw_y = (
+            -head_depth / 2
+            - jaw_gap
+            - lower_jaw_depth / 2
+        )
+
+        mutils.add_shape(
+            C=self.C,
+            frame_name=f"{tool_name}-head2",
+            parent=f"{tool_name}-head",
+            shape=[
+                lower_jaw_length,
+                lower_jaw_depth,
+                head_thickness,
+                0.004
+            ],
+            relative_position=[
+                lower_jaw_x,
+                lower_jaw_y,
+                0.0
+            ],
+            color=jaw_color,
+            mass=0.025
+        )
+
+        return tool_name

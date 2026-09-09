@@ -262,6 +262,7 @@ class Heuristic:
         # Compute initial waypoint position (gripper pose)
         buffer = 0.015  # safety distance
         initial_position = target_contact - (tool_length + buffer) * movement_dir
+        initial_position[2] += 0.02 # reaching 
 
         # Compute rotation to align tool with movement direction
         v1 = tool_contact_point - grasp_point  # original grasp axis

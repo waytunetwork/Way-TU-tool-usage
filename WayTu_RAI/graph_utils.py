@@ -6,6 +6,7 @@ from torch_geometric.data import Data
 from torch_geometric.nn import knn_graph
 from sklearn.metrics import confusion_matrix
 from torch_geometric.nn import radius_graph
+from sklearn.cluster import DBSCAN
 
 def estimate_normals_and_curvature(env_pc, knn=20):
     pcd = o3d.geometry.PointCloud()
@@ -147,6 +148,7 @@ def arrange_point_cloud_size (point_cloud: torch.Tensor, num_points:int):
 # This function is a runtime heuristic for detecting target centers. 
 def get_target_center(env_points, task, side = None):
     # lifting: 0, minigolf: 1, hammering: 2
+    print("**************Task:", task)
     if task == 0:
         z = env_points[:, 2]
         z_min, z_max = z.min(), z.max()
@@ -304,7 +306,116 @@ def get_target_center(env_points, task, side = None):
         # o3d.visualization.draw_geometries([pcd_all, pcd_pl, axes, pcd_t])
 
         return target_pt[0]
+    elif task == 3:
+        points_np = env_points.detach().cpu().numpy()
 
+        z_min = points_np[:, 2].min()
+        z_range = np.ptp(points_np[:, 2])
+        scene_scale = np.max(np.ptp(points_np, axis=0))
+
+        # Remove the platform surface and upper wall
+        height_mask = (
+            (points_np[:, 2] > z_min + 0.02 * z_range) &
+            (points_np[:, 2] < z_min + 0.40 * z_range)
+        )
+        candidates = points_np[height_mask]
+
+        print("Candidate points:", candidates.shape[0])
+
+        if candidates.shape[0] == 0:
+            target_cluster = points_np
+            target_center = points_np.mean(axis=0)
+
+        else:
+            labels = DBSCAN(
+                eps=0.08 * scene_scale,
+                min_samples=2
+            ).fit_predict(candidates)
+
+            unique_labels, counts = np.unique(
+                labels,
+                return_counts=True
+            )
+            print(
+                "DBSCAN clusters:",
+                dict(zip(unique_labels, counts))
+            )
+
+            scene_center_xy = (
+                points_np[:, :2].min(axis=0) +
+                points_np[:, :2].max(axis=0)
+            ) / 2.0
+
+            possible_targets = []
+
+            for label in unique_labels:
+                if label == -1:
+                    continue
+
+                cluster = candidates[labels == label]
+
+                if cluster.shape[0] < 2:
+                    continue
+
+                cluster_center = (
+                    cluster.min(axis=0) +
+                    cluster.max(axis=0)
+                ) / 2.0
+
+                distance = np.linalg.norm(
+                    cluster_center[:2] - scene_center_xy
+                )
+
+                possible_targets.append(
+                    (distance, cluster_center, cluster, label)
+                )
+
+            if possible_targets:
+                _, target_center, target_cluster, selected_label = min(
+                    possible_targets,
+                    key=lambda item: item[0]
+                )
+                print("Selected cluster:", selected_label)
+            else:
+                print("No valid DBSCAN cluster; using candidate center.")
+                target_cluster = candidates
+                target_center = (
+                    candidates.min(axis=0) +
+                    candidates.max(axis=0)
+                ) / 2.0
+
+        print("Selected target center:", target_center)
+
+        # Complete environment: gray
+        pcd_environment = o3d.geometry.PointCloud()
+        pcd_environment.points = o3d.utility.Vector3dVector(points_np)
+        pcd_environment.paint_uniform_color([0.7, 0.7, 0.7])
+
+        # Selected cluster: green
+        pcd_target = o3d.geometry.PointCloud()
+        pcd_target.points = o3d.utility.Vector3dVector(target_cluster)
+        pcd_target.paint_uniform_color([0.0, 1.0, 0.0])
+
+        # Selected center: red sphere
+        center_marker = o3d.geometry.TriangleMesh.create_sphere(
+            radius=0.03 * scene_scale
+        )
+        center_marker.translate(target_center)
+        center_marker.paint_uniform_color([1.0, 0.0, 0.0])
+
+        o3d.visualization.draw_geometries(
+            [pcd_environment, pcd_target, center_marker],
+            window_name="Reaching Target Detection",
+            width=800,
+            height=600,
+            point_show_normal=False
+        )
+
+        return torch.tensor(
+            target_center,
+            dtype=env_points.dtype,
+            device=env_points.device
+        )
         
 
         

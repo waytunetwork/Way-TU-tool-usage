@@ -128,6 +128,78 @@ def add_mesh_object(C, frame_name, mesh_object, parent=None, mass = 0.05,joint =
         mesh_frame.setJoint(ry.JT.rigid)
 
         
+def add_different_target(C, target_name, frame_name, parent):
+    if target_name == "cube":
+        alpha = random.uniform(-0.01, 0.01)
+        add_shape(C= C, 
+                  frame_name=frame_name, 
+                  joint= True ,
+                  parent = parent, 
+                  shape=[0.05 + alpha, 0.05 + alpha, 0.05 + alpha, 0.00], 
+                  color = [0, 0, 1.0], mass= 0.00001
+                  ) 
+    elif target_name == "puck":
+        alpha = random.uniform(-0.001, 0.001)
+        beta = random.uniform(-0.001, 0.001)
+        add_shape(C= C, 
+                frame_name=frame_name, 
+                joint= True ,
+                parent = parent, 
+                shape=[0.05 + alpha, 0.05 + alpha, 0.025, 0.015], 
+                color = [0, 0, 1.0], mass= 0.00001
+                ) 
+    elif target_name == "bottle":
+        alpha = random.uniform(-0.003, 0.003)
+        beta = random.uniform(-0.003, 0.003)
+
+        body_width = 0.045 + alpha
+        body_height = 0.045 + beta
+        shoulder_height = 0.016
+        neck_height = 0.018
+        overlap = 0.002
+
+        add_shape(
+            C=C,
+            frame_name=frame_name,
+            joint=True,
+            parent=parent,
+            shape=[body_width, body_width, body_height, 0.010],
+            color=[0, 0, 1.0],
+            mass=0.000007
+        )
+
+        shoulder_z = body_height / 2 + shoulder_height / 2 - overlap
+
+        add_shape(
+            C=C,
+            frame_name=f"{frame_name}-shoulder",
+            parent=frame_name,
+            relative_position=[0.0, 0.0, shoulder_z],
+            shape=[0.034 + alpha, 0.034 + alpha,
+                shoulder_height, 0.006],
+            color=[0, 0, 1.0],
+            mass=0.000002
+        )
+
+        neck_z = (
+            body_height / 2
+            + shoulder_height
+            + neck_height / 2
+            - 2 * overlap
+        )
+
+        add_shape(
+            C=C,
+            frame_name=f"{frame_name}-neck",
+            parent=frame_name,
+            relative_position=[0.0, 0.0, neck_z],
+            shape=[0.022, 0.022, neck_height, 0.005],
+            color=[0, 0, 1.0],
+            mass=0.000001
+        )
+    
+        
+        
 
 
 # A general function for adding frames to the environment 
@@ -974,14 +1046,19 @@ def find_grasping_part(C, selected_tool, tool_waypoint):
         possible_parts = [selected_tool + '-base', selected_tool + '-head']
     elif selected_tool in ["book", "thin-stick", "ball"]:
         possible_parts = [selected_tool + '-base']
-    elif selected_tool in ["ring"]:
+    elif selected_tool in ["ring", "pipe-hammer"]:
         possible_parts = [selected_tool + '-base', selected_tool + '-head1',  selected_tool + '-head2',  selected_tool + '-head']
+    elif selected_tool in ["U-tool", "asymmetric-L-ruler", ]:
+        possible_parts = [selected_tool + '-base', selected_tool + '-head',  selected_tool + '-head2']
+    elif selected_tool in ["fork-spatula"]:
+        possible_parts = [selected_tool + '-base', selected_tool + '-head', selected_tool + '-tine-1', selected_tool + '-tine-2',selected_tool + '-tine-3', selected_tool + '-tine-0']
     else: 
         raise Exception("The name is wrong")
     closest_part = None
     min_distance = float('inf')
 
     for part in possible_parts:
+        print("****** part: ", part)
         center = C.getFrame(part).getPosition()
         size = C.getFrame(part).info()['size'][:3]
 
@@ -1190,6 +1267,8 @@ def manipulation_with_komo(C):
     bot.gripperClose(ry._left)
     while not bot.gripperDone(ry._left):
         bot.sync(C, .1)
+
+    # bot.home(C)
 
     path, ret = IK(C, target="initial-waypoint", step=2)
     botop_move(C,bot,path)
@@ -1551,7 +1630,109 @@ def ManipulationWithKOMO_hammering(C, selected_tool, environment, env_class=None
         "task_score": task_score
     }
     return score_info
+# This is the KOMO that used in the data collection
+def ManipulationWithKOMO_reaching(C, selected_tool, environment):
+    qHome = C.getJointState()
+    HomePose = C.getFrame("l_gripper").getPosition()
+    C.addFrame("before-grasping")\
+            .setShape(ry.ST.marker, [.1])\
+            .setPosition(C.getFrame("tool-waypoint").getPosition() + [0.0, 0.0, 0.05])\
+            .setQuaternion(C.getFrame("tool-waypoint").getQuaternion())
+    
+    C.addFrame("after-grasping")\
+            .setShape(ry.ST.marker, [.1])\
+            .setPosition(C.getFrame("tool-waypoint").getPosition() + [0.0, 0.0, 0.1])\
+            .setQuaternion(C.getFrame("tool-waypoint").getQuaternion())
+    
+    mid_position = (C.getFrame("initial-waypoint").getPosition() +C.getFrame("goal-waypoint").getPosition())/2
+    # mid_position[2] = C.getFrame("initial-waypoint").getPosition()[2]
+    # C.addFrame("mid-waypoint")\
+    #         .setShape(ry.ST.marker, [.1])\
+    #         .setPosition(mid_position)\
+    #         .setQuaternion(C.getFrame("initial-waypoint").getQuaternion())
+    
+    bef_init_x = (C.getFrame("l_gripper").getPosition()[0]*5 + C.getFrame("initial-waypoint").getPosition()[0])/6
+    bef_init_y = (C.getFrame("l_gripper").getPosition()[1]*5 + C.getFrame("initial-waypoint").getPosition()[1])/6
+    before_initial_position = [bef_init_x,bef_init_y, C.getFrame("initial-waypoint").getPosition()[2]]
+    C.addFrame("before-initial")\
+            .setShape(ry.ST.marker, [.1])\
+            .setPosition(before_initial_position)\
+            .setQuaternion(C.getFrame("initial-waypoint").getQuaternion())
 
+    bef_init_x2 = (C.getFrame("l_gripper").getPosition()[0]*2 + C.getFrame("initial-waypoint").getPosition()[0]*4)/6
+    bef_init_y2 = (C.getFrame("l_gripper").getPosition()[1]*2 + C.getFrame("initial-waypoint").getPosition()[1]*4)/6
+    before_initial_position2 = [bef_init_x2,bef_init_y2, C.getFrame("initial-waypoint").getPosition()[2]]
+    C.addFrame("before-initial2")\
+            .setShape(ry.ST.marker, [.1])\
+            .setPosition(before_initial_position2)\
+            .setQuaternion(C.getFrame("initial-waypoint").getQuaternion())
+    
+    target_history = environment.target_setup()
+    C.view()
+
+    bot = ry.BotOp(C, useRealRobot=False)
+    bot.home(C)
+
+    # Open Gripper: 
+    bot.gripperMove(ry._left, width = 0.08, speed = 0.1)
+    while not bot.gripperDone(ry._left):
+        bot.sync(C, .1)
+
+    path, ret = IK(C, target="before-grasping", step=1, phase=1)
+    botop_move(C,bot,path)
+
+    path, ret = IK(C, target="tool-waypoint", step=1, phase=1)
+    botop_move(C,bot,path)
+
+    bot.gripperMove(ry._left, width=0.005, speed=0.1)
+    while not bot.gripperDone(ry._left):
+        bot.sync(C, .1)
+    
+    # C.attach(selected_part, "l_gripper")
+    
+    path, ret = IK(C, target="after-grasping", step=1, phase=1)
+    botop_move(C,bot,path)
+
+    
+    bot.home(C)
+    # path, ret = IK(C, target="mid-point", step=2)
+    # head_position_half, base_position_half  = botop_move_stability(C,bot,path, selected_tool)
+    
+    path, ret = IK(C, target="before-initial", step=10)
+    head_positions_half, base_positions_half  = botop_move_stability(C,bot,path, selected_tool)
+
+    path, ret = IK(C, target="before-initial2", step=10)
+    head_positions_half, base_positions_half  = botop_move_stability(C,bot,path, selected_tool)
+    
+    path, ret = IK(C, target="initial-waypoint", step=10)
+    head_positions_in, base_positions_in  = botop_move_stability(C,bot,path, selected_tool)
+    
+    head_positions = head_positions_half + head_positions_in
+    base_positions = base_positions_half + base_positions_in
+    position_history = [base_positions]
+    if selected_tool in ["hammer", "screwdriver", "ring","L-ruler", "spatula"]:
+        position_history.append(head_positions)
+    grasp_score = compute_grasp_stability(position_history, C.getFrame("initial-waypoint").getPosition()) 
+    print(f"Grasp Score: {grasp_score}")
+
+    # path, ret = IK(C, target="mid-waypoint", step=2)
+    # target_history = botop_move_target(C,bot,path,target_history, environment)
+    
+    path, ret = IK(C, target="goal-waypoint", step=2)
+    # botop_move(C,bot,path)
+    target_history = botop_move_target(C,bot,path,target_history, environment)
+    
+    task_score = environment.compute_task_score(target_history)
+    print(f"Task Score: {task_score}")
+
+    score = grasp_score + task_score
+    print(f"All Score: {score}")
+    score_info = {
+        "score" : score,
+        "grasp_score": grasp_score,
+        "task_score": task_score
+    }
+    return score_info
 # This is the KOMO that used in the data collection
 def ManipulationWithKOMO_original(C, selected_tool, environment):
     qHome = C.getJointState()
@@ -1685,6 +1866,174 @@ def grasping_post_process(parameters):
         grasp_position =  fix_grasp_pos(parameters["tool-pc"], parameters["predicted-pos"])
         grasp_position = shift_toward_handle_center(grasp_position, parameters["tool-handle-center"])
     return grasp_quaternion, grasp_position
+
+
+def post_process_waypoints_for_tasks(
+    task,
+    C,
+    selected_tool,
+    selected_part,
+    best_wp,
+    tool_points,
+    target_center,
+    lifting_side_fix,
+    hammering_flag,
+):
+    if task in ["minigolf"]:
+        tool_quaternion = C.getFrame(selected_tool + "-base").getQuaternion()
+        grasp_quaternion, grasp_position = grasping_post_process(
+            {
+                "tool-qua": tool_quaternion,
+                "tool-handle-center": C.getFrame(selected_tool + "-base").getPosition(),
+                "predicted-qua": best_wp["qua"][0],
+                "predicted-pos": best_wp["pos"][0],
+                "tool-pc": tool_points,
+            }
+        )
+        best_wp["qua"][0] = grasp_quaternion
+        best_wp["pos"][0] = grasp_position
+        best_wp["pos"][0][2] = C.getFrame(selected_tool + "-base").getPosition()[2]
+
+    elif task == "lifting":
+        tool_quaternion = C.getFrame(selected_tool + "-base").getQuaternion()
+        print(f"Tool Quaternion: {tool_quaternion}")
+        if "base" in selected_part:
+            tool_handle_center = C.getFrame(selected_tool + "-base").getPosition()
+        elif "head" in selected_part:
+            tool_handle_center = C.getFrame(selected_tool + "-head").getPosition()
+        else:
+            raise Exception
+
+        if lifting_side_fix:
+            best_wp["pos"][1][0] = -best_wp["pos"][1][0]
+            best_wp["pos"][2][0] = -best_wp["pos"][2][0]
+            best_wp["qua"][1] = rotate_quat_yaw_180(best_wp["qua"][1])
+            best_wp["qua"][2] = rotate_quat_yaw_180(best_wp["qua"][2])
+
+        def as_np(x):
+            if isinstance(x, torch.Tensor):
+                return x.detach().cpu().numpy()
+            return np.asarray(x, dtype=np.float64)
+
+        p1 = as_np(best_wp["pos"][1])
+        tc = as_np(C.getFrame("lifting-obj").getPosition())
+        best_wp["pos"][1] = (p1 + 0.3 * (tc - p1)).tolist()
+
+        p2 = as_np(best_wp["pos"][2])
+        best_wp["pos"][2] = (p2 + 0.3 * (tc - p2)).tolist()
+
+        grasp_quaternion, grasp_position = grasping_post_process(
+            {
+                "tool-qua": tool_quaternion,
+                "tool-handle-center": tool_handle_center,
+                "predicted-qua": best_wp["qua"][0],
+                "predicted-pos": best_wp["pos"][0],
+                "tool-pc": tool_points,
+            }
+        )
+        best_wp["qua"][0] = grasp_quaternion
+        best_wp["qua"][0] = tool_quaternion
+        print("AAA")
+        best_wp["pos"][0] = grasp_position
+        best_wp["pos"][0][2] = C.getFrame(selected_tool + "-base").getPosition()[2]
+
+        best_wp["qua"][1] = rotate_quat_yaw_180(best_wp["qua"][1])
+        best_wp["qua"][2] = rotate_quat_yaw_180(best_wp["qua"][2])
+
+        manipulation_height = best_wp["pos"][2][2] - best_wp["pos"][1][2]
+        if manipulation_height < 0.2:
+            print(f"I predicted too short lifting: {manipulation_height}")
+            best_wp["pos"][2][2] += 0.1
+
+        target_height_difference = target_center[2] - best_wp["pos"][1][2]
+        print(
+            f"**DEBUG** the difference between initial and target center: {target_height_difference}"
+        )
+        if target_height_difference < 0.06:
+            best_wp["pos"][1][2] -= 0.03
+
+    elif task in ["hammering", "reaching"]:
+        tool_quaternion = C.getFrame(selected_tool + "-base").getQuaternion()
+        if "base" in selected_part:
+            tool_handle_center = C.getFrame(selected_tool + "-base").getPosition()
+        elif "head" in selected_part:
+            tool_handle_center = C.getFrame(selected_tool + "-head").getPosition()
+        else:
+            raise Exception
+
+        if hammering_flag:
+            print("here")
+            best_wp["pos"][1][0] = -best_wp["pos"][1][0]
+            best_wp["pos"][2][0] = -best_wp["pos"][2][0]
+
+        def as_np(x):
+            if isinstance(x, torch.Tensor):
+                return x.detach().cpu().numpy()
+            return np.asarray(x, dtype=np.float64)
+
+        target_obj_name = task + "-obj"
+        tc = as_np(C.getFrame(target_obj_name).getPosition())
+
+        p2 = as_np(best_wp["pos"][2])
+        # best_wp["pos"][2] = (p2 + 0.5 * (tc - p2)).tolist()
+
+        grasp_quaternion, grasp_position = grasping_post_process(
+            {
+                "tool-qua": tool_quaternion,
+                "tool-handle-center": tool_handle_center,
+                "predicted-qua": best_wp["qua"][0],
+                "predicted-pos": best_wp["pos"][0],
+                "tool-pc": tool_points,
+            }
+        )
+        best_wp["qua"][0] = grasp_quaternion
+        best_wp["qua"][0] = tool_quaternion
+        best_wp["pos"][0] = grasp_position
+        best_wp["pos"][0][2] = C.getFrame(selected_tool + "-base").getPosition()[2]
+
+        if task == "hammering":
+            best_wp["qua"][1] = rotate_quat_yaw_angle(best_wp["qua"][1], -np.pi / 4)
+            best_wp["qua"][2] = rotate_quat_yaw_angle(best_wp["qua"][2], -np.pi / 4)
+        else:
+            print("*******here*******")
+            best_wp["qua"][1] = rotate_quat_yaw_angle(best_wp["qua"][1], np.pi / 8)
+            best_wp["qua"][2] = rotate_quat_yaw_angle(best_wp["qua"][2], np.pi / 8)
+
+        initial_goal = best_wp["pos"][2][0] - best_wp["pos"][1][0]
+        print("initial_goal: ", initial_goal)
+
+        # best_wp["pos"][1][2] = target_center[2]
+        # best_wp["pos"][2][2] = target_center[2]
+
+        if hammering_flag:
+            best_wp["qua"][1] = rotate_quat_yaw_180(best_wp["qua"][1])
+            best_wp["qua"][2] = rotate_quat_yaw_180(best_wp["qua"][2])
+
+    return best_wp
+
+
+def run_manipulation_for_task(
+    task,
+    C,
+    selected_tool,
+    task_environment,
+    environment_controller=None,
+):
+    if task == "lifting":
+        real_score = ManipulationWithKOMO_lifting(C, selected_tool, task_environment)
+    elif task == "minigolf":
+        real_score = ManipulationWithKOMO_minigolf(C, selected_tool, task_environment)
+    elif task in ["hammering"]:
+        real_score = ManipulationWithKOMO_hammering(
+            C,
+            selected_tool,
+            task_environment,
+            environment_controller,
+        )
+    elif task in ["reaching"]:
+        real_score = ManipulationWithKOMO_reaching(C, selected_tool, task_environment)
+
+    return real_score
 
 # For DEBUG 
 def shift_toward_handle_center(p, handle_center, alpha=0.2):
@@ -1987,3 +2336,23 @@ def rot180_inplace_torch(points, axis='z'):
         points[:, 2].mul_(-1.0)
     else:
         raise ValueError("axis must be 'x', 'y', or 'z'")
+
+def rotate_quaternion(axis, quaternion, degrees, local_axis=True):
+    axis = np.asarray(axis, dtype=float)
+    axis = axis / np.linalg.norm(axis)
+
+    current_rotation = R.from_quat(
+        quaternion,
+        scalar_first=True,
+    )
+
+    additional_rotation = R.from_rotvec(
+        axis * np.deg2rad(degrees)
+    )
+
+    if local_axis:
+        rotated = current_rotation * additional_rotation
+    else:
+        rotated = additional_rotation * current_rotation
+
+    return rotated.as_quat(scalar_first=True)
