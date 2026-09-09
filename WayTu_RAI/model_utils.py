@@ -1879,7 +1879,7 @@ def post_process_waypoints_for_tasks(
     lifting_side_fix,
     hammering_flag,
 ):
-    if task in ["minigolf"]:
+    if task in ["minigolf", "pushing"]:
         tool_quaternion = C.getFrame(selected_tool + "-base").getQuaternion()
         grasp_quaternion, grasp_position = grasping_post_process(
             {
@@ -2021,7 +2021,7 @@ def run_manipulation_for_task(
 ):
     if task == "lifting":
         real_score = ManipulationWithKOMO_lifting(C, selected_tool, task_environment)
-    elif task == "minigolf":
+    elif task in ["minigolf", "pushing"]:
         real_score = ManipulationWithKOMO_minigolf(C, selected_tool, task_environment)
     elif task in ["hammering"]:
         real_score = ManipulationWithKOMO_hammering(
